@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Environment
+.env
+config.local.php
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temp files
+tmp/
+temp/
