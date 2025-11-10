@@ -72,6 +72,47 @@ switch ($action) {
         jsonResponse(['success' => true, 'message' => 'Message marked as read']);
         break;
         
+    case 'conversation':
+        $otherUserId = intval($_GET['user_id'] ?? 0);
+        
+        if ($otherUserId === 0) {
+            jsonResponse(['success' => false, 'message' => 'Invalid user ID'], 400);
+        }
+        
+        $db = getDB();
+        $conn = $db->getConnection();
+        
+        // Get recipient name
+        $user = $conn->query("SELECT first_name, last_name FROM users WHERE id = $otherUserId")->fetch_assoc();
+        $recipientName = $user['first_name'] . ' ' . $user['last_name'];
+        
+        // Get messages between the two users
+        $result = $conn->query("
+            SELECT m.*, 
+                   CASE WHEN m.sender_id = $userId THEN 1 ELSE 0 END as is_mine
+            FROM messages m
+            WHERE (m.sender_id = $userId AND m.recipient_id = $otherUserId)
+               OR (m.sender_id = $otherUserId AND m.recipient_id = $userId)
+            ORDER BY m.created_at ASC
+        ");
+        
+        $messages = [];
+        while ($msg = $result->fetch_assoc()) {
+            $messages[] = [
+                'id' => $msg['id'],
+                'message' => $msg['message'],
+                'is_mine' => $msg['is_mine'] == 1,
+                'time_ago' => timeAgo($msg['created_at']),
+                'created_at' => $msg['created_at']
+            ];
+        }
+        
+        // Mark messages as read
+        $conn->query("UPDATE messages SET is_read = 1 WHERE sender_id = $otherUserId AND recipient_id = $userId");
+        
+        jsonResponse(['success' => true, 'messages' => $messages, 'recipient_name' => $recipientName]);
+        break;
+        
     default:
         jsonResponse(['success' => false, 'message' => 'Invalid action'], 400);
 }
